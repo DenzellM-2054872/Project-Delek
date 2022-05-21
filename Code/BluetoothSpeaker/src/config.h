@@ -3,7 +3,7 @@
 // visit io.adafruit.com if you need to create an account,
 // or if you need your Adafruit IO key.
 #define IO_USERNAME "Cinematic_Carpet"
-#define IO_KEY "aio_SkBr81sbxVagildt4ddVnTL1mTZR"
+#define IO_KEY "aio_EACU909YFsr3P2RCm9FUB3Kw7vfm"
 
 /******************************* WIFI **************************************/
 
