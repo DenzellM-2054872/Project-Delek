@@ -134,17 +134,17 @@ void notificationSetup(){
 
   pinMode(ledPin, OUTPUT);
 
-//   io.connect();
-//   notiFeed->onMessage(handleNotification);
+  io.connect();
+  notiFeed->onMessage(handleNotification);
   
-//   while (io.status() < AIO_CONNECTED)
-//   {
-//     Serial.print(".");
-//     delay(500);
-//   }
+  while (io.status() < AIO_CONNECTED)
+  {
+    Serial.print(".");
+    delay(500);
+  }
   
-//   Serial.println();
-//   Serial.println(io.statusText());
+  Serial.println();
+  Serial.println(io.statusText());
 }
 
 

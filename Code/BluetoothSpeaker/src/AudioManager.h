@@ -98,13 +98,13 @@ void audioSetup() {
   ledStrip.begin();
   ledStrip.setBrightness(15);
   ledStrip.show();
-  // Serial.print("looking for device");
+  Serial.print("looking for device");
 
-  // while (!a2dpsink.is_connected())
-  // {
-  //   Serial.print(".");
-  //   delay(500);
-  // }
+  while (!a2dpsink.is_connected())
+  {
+    Serial.print(".");
+    delay(500);
+  }
   
 }
 
