@@ -12,17 +12,13 @@
 #define nextButton 2
 #define ledPin 15
 
-boolean prevNext = false;
-boolean anotherPrevNext = false;
-boolean prevPrev = false;
-boolean anotherPrevPrev = false;
-boolean newMessage = false;
+boolean newMessage = true;
 boolean prevRead = false;
 boolean unread = false;
 
 unsigned long nextDebounceTime = 0;
 unsigned long prevDebounceTime = 0;
-unsigned long debounceDelay = 50;
+unsigned long debounceDelay = 200;
 
 TFT_eSPI tft = TFT_eSPI();
 AdafruitIO_Feed *notiFeed = io.feed("Notification");
@@ -32,8 +28,34 @@ int i = 0;
 void handleNotification(AdafruitIO_Data *data){
   String message = data->toString();
   messages.push_back(message);
-  Serial.print("notification: ");
-  Serial.println(message);
+}
+
+void nextMessage(){
+    unsigned long debounceTime = millis();
+    if(debounceTime - nextDebounceTime > debounceDelay){
+        if(messages.size() > 0){
+            ++i;
+            i = ( i % messages.size());
+            newMessage = true;
+        }
+    }
+    nextDebounceTime = debounceTime;
+}
+
+void prevMessage(){
+    unsigned long debounceTime = millis();
+    if(debounceTime - nextDebounceTime > debounceDelay){
+        if(messages.size() > 0){
+            --i;
+            if(i == -1)
+                i = messages.size() - 1;
+            else
+                i = ( i % messages.size());
+
+            newMessage = true;
+        }
+    }
+    nextDebounceTime = debounceTime;
 }
 
 std::vector<String> sliceMessage(String message){
@@ -71,7 +93,6 @@ void printEmpty(){
   tft.println("massive L bozo");
   tft.println("hold this ratio");
   tft.println("you've got as many messages as you have maidens");
-  Serial.println("printed");
 }
 
 void printMessage(int index){
@@ -79,6 +100,7 @@ void printMessage(int index){
     printEmpty();
     return;
   }
+
   String message = messages[index];
   std::vector<String> splitMessage = sliceMessage(message);
   String app = splitMessage[0];
@@ -103,75 +125,39 @@ void notificationSetup(){
   Serial.begin(115200);
 
   pinMode(readButton, INPUT);
+
   pinMode(prevButton, INPUT_PULLDOWN);
+  attachInterrupt(prevButton, prevMessage, RISING);
+
   pinMode(nextButton, INPUT_PULLDOWN);
+  attachInterrupt(nextButton, nextMessage, RISING);
+
   pinMode(ledPin, OUTPUT);
 
-  io.connect();
-  notiFeed->onMessage(handleNotification);
+//   io.connect();
+//   notiFeed->onMessage(handleNotification);
   
-  while (io.status() < AIO_CONNECTED)
-  {
-    Serial.print(".");
-    delay(500);
-  }
+//   while (io.status() < AIO_CONNECTED)
+//   {
+//     Serial.print(".");
+//     delay(500);
+//   }
   
-  Serial.println();
-  Serial.println(io.statusText());
+//   Serial.println();
+//   Serial.println(io.statusText());
 }
 
 
 void notificationLoop(){
-  io.run();
+//   io.run();
   if(newMessage){
     printMessage(i);
+    newMessage = false;
   }
     
-
-  boolean readNext = !(boolean) digitalRead(nextButton);
-  boolean readPrev = !(boolean) digitalRead(prevButton);
   boolean readMessage = analogRead(readButton) < 1000;
   unread = messages.size() > 0;
 
-  boolean Next = false;
-  boolean prev = false;
-  
-  if(readNext != prevNext){
-    nextDebounceTime = millis();
-  }
-  if(readPrev != prevPrev){
-    prevDebounceTime = millis();
-  }
-
-  if((millis() - nextDebounceTime) > debounceDelay){
-    if(readNext && !anotherPrevNext){
-      Next = true;
-    }
-    anotherPrevNext = readNext;
-  }
-
-  if((millis() - prevDebounceTime) > debounceDelay){
-    if(readPrev && !anotherPrevPrev){
-      prev = true;
-    }
-    anotherPrevPrev = readPrev;
-  }
-
-  if(messages.size() > 0){
-    if(Next){
-      ++i;
-      i = ( i % messages.size());
-      newMessage = true;
-    }else if(prev){
-      --i;
-      i = (i % messages.size());
-      newMessage = true;
-    }else{
-       newMessage = false;
-    }
-  }else{
-    newMessage = false;
-  }
 
   if(readMessage && !prevRead && messages.size() > 0){
     messages.erase(messages.begin() + i, messages.begin() + i + 1);
@@ -184,8 +170,5 @@ void notificationLoop(){
     digitalWrite(ledPin, LOW);
 
   prevRead = readMessage;
-  prevPrev = readPrev;
-  prevNext = readNext;
-  delay(20);
 }
 #endif

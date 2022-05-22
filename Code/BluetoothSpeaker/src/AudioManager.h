@@ -17,16 +17,14 @@ BluetoothA2DPSink a2dpsink;
 Adafruit_NeoPixel ledStrip = Adafruit_NeoPixel(3, abianceStripPin, NEO_RGB + NEO_KHZ800);
 BluetoothSerial SerialBT;
 String colour = "";
-boolean paused = false;
 boolean prevPausePlay = false;
-boolean prevSkip = false;
-boolean anotherPrevSkip = false;
-boolean prevPrev = false;
-boolean anotherPrevPrev = false;
+boolean paused = false;
+boolean skip = false;
+boolean prev = false;
 
 unsigned long skipDebounceTime = 0;
 unsigned long prevDebounceTime = 0;
-unsigned long debounceDelay = 50;
+unsigned long debounceDelay = 200;
 
 int readVolume(int pin){
   return map(analogRead(pin), 0, 4095, 0, 100);
@@ -41,10 +39,26 @@ void setColour(int r, int g, int b)
   ledStrip.show();
 }
 
+void nextSong(){
+  unsigned long debounceTime = millis();
+  if(debounceTime - skipDebounceTime > debounceDelay){
+    skip = true;
+  }
+  skipDebounceTime = debounceTime;
+}
+
+void prevSong(){
+  unsigned long debounceTime = millis();
+  if(debounceTime - prevDebounceTime > debounceDelay){
+    prev = true;
+  }
+  prevDebounceTime = debounceTime;
+}
+
 void setTextColour()
 {
   Serial.println(colour);
-  if(colour.compareTo("red") == 0){
+  if(colour == "red"){
     setColour(255, 0, 0);
   } else if(colour == "green"){
     setColour(0, 255, 0);
@@ -71,8 +85,13 @@ void audioSetup() {
   a2dpsink.start("ESP32Test");
   pinMode(volumeKnobPin, INPUT);
   pinMode(playButton, INPUT);
+
   pinMode(prevButton, INPUT_PULLDOWN);
+  attachInterrupt(prevButton, prevSong, RISING);
+
   pinMode(nextButton, INPUT_PULLDOWN);
+  attachInterrupt(nextButton, nextSong, RISING);
+
   pinMode(abianceStripPin, OUTPUT);
 
   volume = readVolume(volumeKnobPin);
@@ -92,9 +111,8 @@ void audioSetup() {
 void audioLoop() {
   int loopVolume = readVolume(volumeKnobPin);
   boolean pausePlay = analogRead(playButton) < 1000;
-  boolean readSkip = !(boolean) digitalRead(nextButton);
-  boolean readPrev = !(boolean) digitalRead(prevButton);
   String inputColour = "";
+
   if(SerialBT.available()){
     inputColour = SerialBT.readString();
     Serial.println(inputColour);
@@ -115,31 +133,6 @@ void audioLoop() {
     volume = loopVolume;
   }
 
-  boolean skip = false;
-  boolean prev = false;
-  
-  if(readSkip != prevSkip){
-    skipDebounceTime = millis();
-  }
-  if(readPrev != prevPrev){
-    prevDebounceTime = millis();
-  }
-
-  if((millis() - skipDebounceTime) > debounceDelay){
-    if(readSkip && !anotherPrevSkip){
-      skip = true;
-    }
-    anotherPrevSkip = readSkip;
-  }
-
-  if((millis() - prevDebounceTime) > debounceDelay){
-    if(readPrev && !anotherPrevPrev){
-      prev = true;
-    }
-    anotherPrevPrev = readPrev;
-  }
-
-
   if(pausePlay && !prevPausePlay){
     if(paused){
         Serial.println("resuming");
@@ -149,21 +142,23 @@ void audioLoop() {
         a2dpsink.pause();
     }
     paused = !paused;
+
   }else if(skip){
     Serial.println("skipping to the next song");
     a2dpsink.next();
+    skip = false;
     if(paused)
       a2dpsink.pause();
+
   }else if(prev){
     Serial.println("returning to the previous song");
     a2dpsink.previous();
+    prev = false;
     if(paused)
       a2dpsink.pause();
   }
 
   prevPausePlay = pausePlay;
-  prevPrev = readPrev;
-  prevSkip = readSkip;
   delay(20);
 }
 
