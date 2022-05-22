@@ -28,7 +28,9 @@ int i = 0;
 void handleNotification(AdafruitIO_Data *data){
   String message = data->toString();
   messages.push_back(message);
-}
+  Serial.println("message recieved");
+  Serial.println(message);
+  }
 
 void nextMessage(){
     unsigned long debounceTime = millis();
@@ -120,6 +122,9 @@ void notificationSetup(){
   messages.push_back("(Messages) (Mama) (You are my favorite child)");
   messages.push_back("(Messages) (Papa) (You are a disgrace to this family)");
 
+  io.connect();
+  notiFeed->onMessage(handleNotification);
+
   tft.init();
   tft.setRotation(1);
   Serial.begin(115200);
@@ -134,8 +139,7 @@ void notificationSetup(){
 
   pinMode(ledPin, OUTPUT);
 
-  io.connect();
-  notiFeed->onMessage(handleNotification);
+
   
   while (io.status() < AIO_CONNECTED)
   {
@@ -149,7 +153,7 @@ void notificationSetup(){
 
 
 void notificationLoop(){
-//   io.run();
+  io.run();
   if(newMessage){
     printMessage(i);
     newMessage = false;
